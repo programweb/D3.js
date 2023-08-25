@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js v6 -->
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+
+<h2>D3.js Scatter-Plot</h2>
+<h3>Commented Code &amp; Axis Labels</h3>
+<p><a href='https://d3-graph-gallery.com/graph/scatter_basic.html' target='_blank'>Example from d3-graph-gallery</a></p>
+
+<p><b style='color:#909090'>Hover over dot to show coordinates</b>
+<div class='tooltip'></div>
+
+<script>
+const maxX = 2000
+const maxY = 2000;
+const tooltip = d3.select(".tooltip");
+const numberOfDataPoints = 7; // number of random data points to generate
+// Define the dimensions and margins of the graph
+const margin = {top: 10, right: 30, bottom: 30, left: 60},
+        width = 460 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+const randomData = [];
+for (let i = 0; i < numberOfDataPoints; i++) {
+    randomData.push({
+        GrLivArea: Math.random() * maxX,
+        SalePrice: Math.random() * maxY
+    });
+}
+
+
+
+// Append the SVG element to the designated div
+const svg = d3.select("#my_dataviz")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+// Create the X axis scale; map data values from the domain [0, maxX] to the range [0, width]
+const x = d3.scaleLinear()
+    .domain([0, maxX])
+    .range([0, width]);
+svg.append("g")
+    .attr("transform", `translate(0, ${height})`)
+    .call(d3.axisBottom(x));
+
+// Create the Y axis scale; map data values from the domain [0, maxY] to the range [0, width]
+const y = d3.scaleLinear()
+    .domain([0, maxY])
+    .range([height, 0]);
+svg.append("g")
+    .call(d3.axisLeft(y));
+
+// Append X-axis label
+svg.append("text")
+    .attr("class", "x-axis-label")
+    .attr("x", width / 2)
+    .attr("y", height + margin.top + 20) // Adjust the y position
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px") // Set the font size
+    .text("Above Grade Living Area"); // X-axis label text; GrLivArea
+// Append Y-axis label
+svg.append("text")
+    .attr("class", "y-axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -margin.left) // Adjust the y position
+    .attr("dy", "1em") // Adjust the vertical offset
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px") // Set the font size
+    .text("Sale Price"); // Y-axis label text; SalePrice
+
+
+// Add dots
+const dots = svg.append('g') // append a new 'g' (group) SVG element (g is in SVG language) and then assignin to variable dots; grouping allows you to apply transformations, attributes, and styles to multiple elements as a single unit
+    .selectAll("dot") // select elements in the DOM; However, there is no HTML tag named "dot". a placeholder allows you to prepare for the future addition of elements and data binding;
+    .data(randomData) // bind data to a selection of elements in the DOM; each data point is now tied to a potential future "dot" element;
+    .join("circle") // for each data point in the randomData array, a new <circle> element should be created if there isn't an existing matching element. 
+    .attr("cx", function (d) { return x(d.GrLivArea); }) // sets cx attributes of each circle (x coordinate of circle center); anonymous function gets a data point d as its argument; x(d.GrLivArea): This uses the x linear scale defined earlier in the code to map the value of d.GrLivArea to a specific X-coordinate on the SVG.
+    .attr("cy", function (d) { return y(d.SalePrice); }) // sets cy attributes of each circle (y coordinate of circle center)
+    .attr("r", 4) // <circle radius> to change circle size
+    .style("fill", "#69b3a2")
+    .on("mouseover", function(event, d) { // on mouseover show the tooltip 
+
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", 0.9);
+        tooltip.html(`X: ${d.GrLivArea.toFixed(2)}<br>Y: ${d.SalePrice.toFixed(2)}`) // Update tooltip content with coordinates
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+
+        /*
+        In essence, this dotX line calculates the horizontal position of a data point's graphical representation on the scatter plot 
+            based on its GrLivArea value and the scaling applied to the x-axis.
+        GrLiveArea: Above Grade Living Area - total square footage of the interior living space in a home, excluding any below-ground 
+            or basement areas
+        d.GrLivArea: This refers to the GrLivArea value of the current data point d.
+        x is a linear scale after d3.scaleLinear() call; scale is used to determine how the GrLivArea values should be mapped to the 
+            horizontal position within the width of the SVG.
+        x(d.GrLivArea): This expression uses the linear scale x to convert the GrLivArea value of the data point to its corresponding 
+            x-coordinate within the SVG's coordinate system. The scale takes the input value from the data point's GrLivArea and maps 
+            it to the appropriate position along the x-axis, based on the scale's domain and range.
+        const dotX = x(d.GrLivArea);: This line assigns the calculated x-coordinate to the variable dotX, which will be used to position
+            the graphical elements (such as circles and lines) related to this data point along the x-axis of the scatter plot.
+        */
+        const dotX = x(d.GrLivArea); // seems to be pixel distance in the x direction from y-axis
+        const dotY = y(d.SalePrice);
+
+        svg.append("line") // draw dashed line
+            .attr("class", "dashed-line")
+            .attr("x1", dotX)
+            .attr("y1", dotY)
+            .attr("x2", dotX)
+            .attr("y2", height)
+            .style("stroke", "#909090")
+            .style("stroke-dasharray", "4 4");
+        
+        svg.append("line") // draw dashed line
+            .attr("class", "dashed-line")
+            .attr("x1", dotX)
+            .attr("y1", dotY)
+            .attr("x2", 0)
+            .attr("y2", dotY)
+            .style("stroke", "#909090")
+            .style("stroke-dasharray", "4 4");
+    })
+    .on("mousemove", function(event, d) { // on mouse move update tooltip position
+        tooltip.style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function(d) { // on mouseout hide the tooltip & remove dashed lines
+        tooltip.transition()
+            .duration(500)
+            .style("opacity", 0);
+        svg.selectAll(".dashed-line").remove();
+    });
+</script>
