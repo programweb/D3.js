@@ -1,0 +1,84 @@
+/*-*
+* Title: Dendrogram 3  pgPathAlias: dendro3
+* Originally created on: 09-22-2023 02:25:19 pm   by: 1
+*/
+
+
+
+<style>
+  .node circle {
+    fill: #999;
+  }
+
+  .node text {
+    font: 10px sans-serif;
+  }
+
+  .node--internal circle {
+    fill: #555;
+  }
+
+  .node--internal text {
+    text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+  }
+
+  .link {
+    fill: none;
+    stroke: #555;
+    stroke-opacity: 0.4;
+    stroke-width: 1.5px;
+  }
+</style>
+
+<svg width="1200" height="2400"></svg>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+  var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height"),
+    g = svg.append("g").attr("transform", "translate(40,0)");
+
+  var cluster = d3.cluster() // arranges hierarchical data, such as trees or dendrograms, into visualization that emphasizes branching
+    .size([height, width - 160]);
+
+  var stratify = d3.stratify()  // transforms a flat dataset into a hierarchical structure
+    .parentId(function (d) { return d.id.substring(0, d.id.lastIndexOf(".")); }); // the parentId function extracts the parent ID for each data item, which is used to build the hierarchical structure.
+
+  d3.csv("https://gist.githubusercontent.com/mbostock/e9ba78a2c1070980d1b530800ce7fa2b/raw/7db167e3c9d59d5d6a726ff1e6ada41d145d7895/flare.csv", function (error, data) {
+    if (error) throw error;
+
+    var root = stratify(data)
+      .sort(function (a, b) { return (a.height - b.height) || a.id.localeCompare(b.id); }); // sorted based on the height of the nodes in the hierarchy (how deep they are in the tree) and their IDs
+
+    cluster(root); // see d3.cluster() above; root is passed as an argument
+
+    var link = g.selectAll(".link")
+      .data(root.descendants().slice(1))
+      .enter().append("path")
+      .attr("class", "link")
+      .attr("d", diagonal);
+
+    var node = g.selectAll(".node")
+      .data(root.descendants())
+      .enter().append("g")
+      .attr("class", function (d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
+      .attr("transform", function (d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+    node.append("circle")
+      .attr("r", 2.5);
+
+    node.append("text")
+      .attr("dy", 3)
+      .attr("x", function (d) { return d.children ? -8 : 8; })
+      .style("text-anchor", function (d) { return d.children ? "end" : "start"; })
+      .text(function (d) { return d.id.substring(d.id.lastIndexOf(".") + 1); });
+  });
+
+  function diagonal(d) { // defines the path (d) for the links (edges) between nodes; specifies the curvature of the links
+    return "M" + d.y + "," + d.x // M specifies the starting point of the path; d.y and d.x represent the current node's coordinates (horizontal and vertical).
+      + "C" + (d.parent.y + 100) + "," + d.x // C specifies a Bezier curve with control points; d.parent.y and d.parent.x represent the parent node's coordinates.
+      + " " + (d.parent.y + 100) + "," + d.parent.x // + 100 values control the curvature of the links; you can adjust them to change the appearance of the links.
+      + " " + d.parent.y + "," + d.parent.x;
+  }
+</script>
